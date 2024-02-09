@@ -3,12 +3,11 @@ import sys
 import pickle
 import gzip
 import numpy as np
-import matplotlib.pyplot as plt
+from lifelines.utils import concordance_index
 # PyTorch
 import torch
 import torchvision
-import torchmetrics
-
+    
 def makedir_if_not_exist(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -54,34 +53,59 @@ def generate_survival_mnist(labels, random_state=42):
     event_indicators = (event_times<=censor_times).astype(int)
     return event_times, censor_times, durations, event_indicators
 
+class Dataset(torch.utils.data.Dataset):
+    def __init__(self, images, durations, labels, transform=None):
+        self.images = images
+        self.durations = durations
+        self.labels = labels
+        self.transform = transform
+        
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, index):
+        return (self.images[index], self.durations[index], self.labels[index]) if self.transform == None else (self.transform(self.images[index]), self.durations[index], self.labels[index])
+    
+def collate_fn(batch):
+    images, durations, labels = zip(*batch)
+    images = np.concatenate(images, axis=0)
+    durations = np.array(durations)
+    labels = np.array(labels)
+    return torch.tensor(images).view(-1, 1, 28, 28), torch.tensor(durations), torch.tensor(labels)
+
 def train_one_epoch(model, criterion, optimizer, dataloader, lr_scheduler=None):
 
     device = torch.device('cuda:0' if next(model.parameters()).is_cuda else 'cpu')
     model.train()
     
     dataset_size = len(dataloader) * dataloader.batch_size if dataloader.drop_last else len(dataloader.dataset)
-    metrics = {'acc1': 0.0, 'acc5': 0.0, 'loss': 0.0}
+    metrics = {'CI': 0.0, 'durations': np.array([]), 'labels': np.array([]), 'logits': np.array([]), 'loss': 0.0}
 
-    for images, labels in dataloader:
+    for images, durations, labels in dataloader:
                         
         if device.type == 'cuda':
-            images, labels = images.to(device), labels.to(device)
+            images, durations, labels = images.to(device), durations.to(device), labels.to(device)
 
         model.zero_grad()
         logits = model(images)
-        loss = criterion(logits, labels)
+        loss = criterion(logits, durations, labels)
         loss.backward()
         optimizer.step()
-
+        
         batch_size = len(images)
-        probabilities = torch.softmax(logits, dim=1)
-        acc1, acc5 = accuracy(probabilities, labels, topk=(1, 5))
-        metrics['acc1'] += batch_size/dataset_size*acc1.item()
-        metrics['acc5'] += batch_size/dataset_size*acc5.item()
         metrics['loss'] += batch_size/dataset_size*loss.item()
+        
+        if device.type == 'cuda':
+            durations, labels, logits = durations.cpu(), labels.cpu(), logits.cpu()
+        
+        metrics['durations'] = np.append(metrics['durations'], durations.numpy())
+        metrics['labels'] = np.append(metrics['labels'], labels.numpy())
+        metrics['logits'] = np.append(metrics['logits'], logits.detach().numpy())
         
         if lr_scheduler:
             lr_scheduler.step()
+            
+    metrics['CI'] = concordance_index(metrics['durations'], -metrics['logits'], metrics['labels'])
             
     return metrics
 
@@ -91,22 +115,27 @@ def evaluate(model, criterion, dataloader):
     model.eval()   
     
     dataset_size = len(dataloader) * dataloader.batch_size if dataloader.drop_last else len(dataloader.dataset)
-    metrics = {'acc1': 0.0, 'acc5': 0.0, 'loss': 0.0}
+    metrics = {'CI': 0.0, 'durations': np.array([]), 'labels': np.array([]), 'logits': np.array([]), 'loss': 0.0}
             
     with torch.no_grad():
-        for images, labels in dataloader:
-                        
+        for images, durations, labels in dataloader:
+
             if device.type == 'cuda':
-                images, labels = images.to(device), labels.to(device)
+                images, durations, labels = images.to(device), durations.to(device), labels.to(device)
                 
             logits = model(images)
-            loss = criterion(logits, labels)
+            loss = criterion(logits, durations, labels)
             
             batch_size = len(images)
-            probabilities = torch.softmax(logits, dim=1)
-            acc1, acc5 = accuracy(probabilities, labels, topk=(1, 5))
-            metrics['acc1'] += batch_size/dataset_size*acc1.item()
-            metrics['acc5'] += batch_size/dataset_size*acc5.item()
             metrics['loss'] += batch_size/dataset_size*loss.item()
+    
+            if device.type == 'cuda':
+                durations, labels, logits = durations.cpu(), labels.cpu(), logits.cpu()
+
+            metrics['durations'] = np.append(metrics['durations'], durations.numpy())
+            metrics['labels'] = np.append(metrics['labels'], labels.numpy())
+            metrics['logits'] = np.append(metrics['logits'], logits.detach().numpy())
+                    
+        metrics['CI'] = concordance_index(metrics['durations'], -metrics['logits'], metrics['labels'])
     
     return metrics
