@@ -7,6 +7,7 @@ import torch
 import torchvision
 # Importing our custom module(s)
 import models
+import losses
 import utils
 
 if __name__=='__main__':
@@ -43,7 +44,7 @@ if __name__=='__main__':
     
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = models.Net(hidden_dimension=args.hidden_dimension).to(device)
-    criterion = pycox.models.loss.CoxPHLoss()
+    criterion = losses.MSEHinge()
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
     
     columns = ['epoch', 'train_CI', 'train_loss', 'test_CI', 'test_loss', 'val_CI', 'val_loss']
@@ -72,4 +73,4 @@ if __name__=='__main__':
         'val_durations': val_metrics['durations'],
         'val_labels': val_metrics['labels'],
         'val_logits': val_metrics['logits'],
-    }, f'{args.experiments_path}/{model_name}.pt')
+    }, f'{args.experiments_path}/{args.model_name}.pt')

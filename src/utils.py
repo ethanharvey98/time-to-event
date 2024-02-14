@@ -105,7 +105,7 @@ def train_one_epoch(model, criterion, optimizer, dataloader, lr_scheduler=None):
         if lr_scheduler:
             lr_scheduler.step()
             
-    metrics['CI'] = concordance_index(metrics['durations'], -metrics['logits'], metrics['labels'])
+    metrics['CI'] = concordance_index(metrics['durations'], metrics['logits'], metrics['labels'])
             
     return metrics
 
@@ -136,6 +136,6 @@ def evaluate(model, criterion, dataloader):
             metrics['labels'] = np.append(metrics['labels'], labels.numpy())
             metrics['logits'] = np.append(metrics['logits'], logits.detach().numpy())
                     
-        metrics['CI'] = concordance_index(metrics['durations'], -metrics['logits'], metrics['labels'])
+        metrics['CI'] = concordance_index(metrics['durations'], metrics['logits'], metrics['labels'])
     
     return metrics
