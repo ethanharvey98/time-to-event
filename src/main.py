@@ -44,6 +44,7 @@ if __name__=='__main__':
     
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = models.Net(hidden_dimension=args.hidden_dimension).to(device)
+    #criterion = pycox.models.loss.CoxPHLoss()
     criterion = losses.MSEHinge()
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
     
