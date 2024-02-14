@@ -16,6 +16,7 @@ if __name__=='__main__':
     parser.add_argument('--epochs', default=1000, help='Number of epochs (default: 1000)', type=int)
     parser.add_argument('--experiments_path', default='/cluster/tufts/hugheslab/eharve06/time-to-event/experiments', help='Path to save experiments', type=str)
     parser.add_argument('--hidden_dimension', default=8, help='Hidden dimension (default: 8)', type=int)
+    parser.add_argument('--loss_func', default='MSEHinge', help='Loss function (default: \'MSEHinge\')', type=str)
     parser.add_argument('--lr', default=0.01, help='Learning rate (default: 0.01)', type=float)
     parser.add_argument('--model_name', default='test', help='Model name (default: \'test\')', type=str)
     parser.add_argument('--random_state', default=42, help='Random state (default: 42)', type=int)
@@ -44,8 +45,16 @@ if __name__=='__main__':
     
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = models.Net(hidden_dimension=args.hidden_dimension).to(device)
-    #criterion = pycox.models.loss.CoxPHLoss()
-    criterion = losses.MSEHinge()
+
+    if args.loss_func == 'MSEUncensored':
+        criterion = losses.MSEUncensored()
+    elif args.loss_func == 'MSEHinge':
+        criterion = losses.MSEHinge()
+    elif args.loss_func == 'CoxPH':
+        criterion = pycox.models.loss.CoxPHLoss()
+    else:
+        raise NotImplementedError(f'The specified loss function \'{args.loss_func}\' is not implemented.')
+        
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
     
     columns = ['epoch', 'train_CI', 'train_loss', 'test_CI', 'test_loss', 'val_CI', 'val_loss']
