@@ -1,6 +1,6 @@
 # time-to-event
 
-## Papers to read
+## Papers to Read
 
 - [x] DeepSurv: personalized treatment recommender system using a Cox proportional hazards deep neural network, BMC Medical Research Methodology, 2018 ([see link](https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-018-0482-1))
 - [ ] DeepHit: A Deep Learning Approach to Survival Analysis with Competing Risks, AAAI, 2018 ([see link](http://medianetlab.ee.ucla.edu/papers/AAAI_2018_DeepHit))
