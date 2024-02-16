@@ -7,8 +7,8 @@ class MSEUncensored(nn.Module):
 
     def forward(self, logits, durations, labels):
         logits, durations, labels = logits.float().view(-1), durations.float().view(-1), labels.float().view(-1)
-        mses = (durations-logits)**2
-        error = mses**labels*torch.zeros_like(mse)**(1-labels)
+        squared_errors = (durations-logits)**2
+        error = squared_errors**labels*torch.zeros_like(squared_errors)**(1-labels)
         return torch.mean(error)
 
 class MSEHinge(nn.Module):
@@ -17,6 +17,6 @@ class MSEHinge(nn.Module):
 
     def forward(self, logits, durations, labels):
         logits, durations, labels = logits.float().view(-1), durations.float().view(-1), labels.float().view(-1)
-        mses = (durations-logits)**2
-        error = mses**labels*((durations>=logits).int()*mses)**(1-labels)
+        squared_errors = (durations-logits)**2
+        error = squared_errors**labels*((durations>=logits).int()*squared_errors)**(1-labels)
         return torch.mean(error)
