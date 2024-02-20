@@ -10,8 +10,8 @@
 
 ## Baseline Results
 
-|    | Loss function |      Test CI      |
-|---:|:--------------|:-----------------:|
-|  0 | MSEUncensored | 0.9259 +/- 0.0066 |
-|  1 | MSEHinge      | 0.9564 +/- 0.0010 |
-|  2 | DeepSurv      | 0.9565 +/- 0.0006 |
+| Loss function |      Test CI      |
+|:--------------|:-----------------:|
+| MSEUncensored | 0.9259 +/- 0.0066 |
+| MSEHinge      | 0.9564 +/- 0.0010 |
+| DeepSurv      | 0.9565 +/- 0.0006 |
